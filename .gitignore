@@ -1,0 +1,35 @@
+# Python virtual environments
+.venv/
+.venv311/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Build / dist
+build/
+dist/
+*.egg-info/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MuJoCo menagerie (large model repo — only track our modified XML)
+mujoco_menagerie/
+
+# Large binary outputs (keep PNGs and MP4 for portfolio)
+# Uncomment below to exclude results from git:
+# results/
