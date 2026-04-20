@@ -63,6 +63,10 @@ def _parse_args() -> argparse.Namespace:
                    help="Desired arc-length spacing between waypoints [mm]")
     p.add_argument("--model",      type=str,   default=None,
                    help="Path to Panda MuJoCo XML (overrides default)")
+    p.add_argument("--cx",         type=float, default=0.0,
+                   help="Circle centre X offset [m]")
+    p.add_argument("--cy",         type=float, default=0.0,
+                   help="Circle centre Y offset [m]")
     p.add_argument("--record",     action="store_true",
                    help="Record a video to results/simulation.mp4 (offscreen)")
     return p.parse_args()
@@ -82,6 +86,8 @@ def main() -> None:
         radius=args.radius,
         z_height=args.height,
         step_mm=args.step_mm,
+        cx=args.cx,
+        cy=args.cy,
     )
     print(
         f"[Trajectory]  {traj.n_waypoints} waypoints  "

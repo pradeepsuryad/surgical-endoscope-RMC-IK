@@ -57,8 +57,14 @@ _PANDA_DH: NDArray[np.float64] = np.array(
     dtype=np.float64,
 )
 
-# Fixed flange → EE offset (Panda default: 0 m in x/y, 0 m in z, identity R)
-_T_FLANGE_EE: SE3 = np.eye(4, dtype=np.float64)
+# Flange → attachment_site: 103.4 mm along local Z (matches MuJoCo site pos)
+_T_FLANGE_EE: SE3 = np.array(
+    [[1., 0., 0., 0.     ],
+     [0., 1., 0., 0.     ],
+     [0., 0., 1., 0.1034 ],
+     [0., 0., 0., 1.     ]],
+    dtype=np.float64,
+)
 
 
 # ---------------------------------------------------------------------------
