@@ -30,6 +30,8 @@
 ### Analytical FK vs MuJoCo FK Verification
 ![FK Comparison](results/03_fk_comparison.png)
 
+> Analytical DH FK includes the 103.4 mm flange → `attachment_site` offset (`_T_FLANGE_EE`), bringing discrepancy to **< 10⁻¹² mm** (floating-point noise only).
+
 ### Joint Angles — Smooth Motion Verification
 ![Joint Angles](results/04_joint_angles.png)
 
@@ -244,7 +246,9 @@ All plots are saved to `results/`:
 
 - **MuJoCo Jacobian + Analytical FK.** The geometric Jacobian is extracted
   from MuJoCo's `mj_jacSite` for physical accuracy, while the analytical
-  DH-based FK is computed independently to verify model agreement.
+  DH-based FK is computed independently to verify model agreement. A fixed
+  103.4 mm flange → `attachment_site` offset (`_T_FLANGE_EE`) is appended
+  after joint 7 so both FK methods resolve to the same physical point.
 
 - **Fixed-iteration budget (N = 5).** Real surgical robots operate under
   hard real-time constraints.  Locking `max_iter = 5` deliberately models

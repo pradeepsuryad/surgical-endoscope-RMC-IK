@@ -1,6 +1,6 @@
 # project2_pradeep_dadi.py
 # ME5250 Project 2 — 7-DOF Panda SE(3) NR-IK, Circular Trajectory
-# Dadi Pradyumna Reddy
+# Dadi Pradeep Surya 
 
 from __future__ import annotations
 import argparse, time
@@ -59,11 +59,14 @@ def so3_log(R):
     ax = np.array([R[2,1]-R[1,2], R[0,2]-R[2,0], R[1,0]-R[0,1]]) / (2*np.sin(th))
     return ax / np.linalg.norm(ax) * th
 
+# flange -> attachment_site: 103.4 mm along local Z
+T_EE = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0.1034],[0,0,0,1]], dtype=float)
+
 def fk(q):
     T = np.eye(4)
     for i, (a, d, al, th0) in enumerate(DH):
         T = T @ dh_mat(a, d, al, q[i] + th0)
-    return T
+    return T @ T_EE
 
 def fk_frames(q):
     Ts, T = [np.eye(4)], np.eye(4)
