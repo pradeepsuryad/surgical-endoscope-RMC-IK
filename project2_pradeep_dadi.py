@@ -282,15 +282,26 @@ def plot_3d(log, out):
     _save(fig, out / "01_3d_trajectory.png")
 
 def plot_errors(log, out):
-    t = log['t']
+    t = log['t']; pos_err = log['ep']*1e3; ori_err = log['eo']
     fig, ax = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
-    ax[0].plot(t, log['ep']*1e3, c=C[1], lw=1.4)
-    ax[0].fill_between(t, 0, log['ep']*1e3, alpha=0.15, color=C[1])
+    ax[0].plot(t, pos_err, c=C[1], lw=1.4)
+    ax[0].fill_between(t, 0, pos_err, alpha=0.15, color=C[1])
     ax[0].axhline(1, ls="--", c="gray", lw=0.9, label="1 mm")
     ax[0].set_ylabel("||ep|| [mm]"); ax[0].set_title("SE(3) Tracking Error")
     ax[0].legend(fontsize=9)
-    ax[1].plot(t, log['eo'], c=C[2], lw=1.4)
-    ax[1].fill_between(t, 0, log['eo'], alpha=0.15, color=C[2])
+    # annotate the joint-limit / null-space failure peak
+    pk = int(np.argmax(pos_err)); t_pk = t[pk]; dx = 0.08*(t[-1]-t[0])
+    ax[0].axvline(t_pk, ls=":", color="red", lw=1.2, alpha=0.6)
+    ax[0].annotate(
+        "q4 reaches joint limit\nNull-space loses 1 DOF\n-> arm degrades to 6-DOF\n-> DLS damping activates",
+        xy=(t_pk, pos_err[pk]), xytext=(t_pk + dx, pos_err[pk]*0.65),
+        fontsize=8, color="darkred",
+        arrowprops=dict(arrowstyle="->", color="darkred", lw=0.9),
+        bbox=dict(boxstyle="round,pad=0.3", fc="lightyellow", ec="red", alpha=0.85),
+    )
+    ax[1].plot(t, ori_err, c=C[2], lw=1.4)
+    ax[1].fill_between(t, 0, ori_err, alpha=0.15, color=C[2])
+    ax[1].axvline(t_pk, ls=":", color="red", lw=1.2, alpha=0.6)
     ax[1].set_ylabel("||eo|| [rad]"); ax[1].set_xlabel("time [s]")
     fig.tight_layout()
     _save(fig, out / "02_error_over_time.png")
@@ -331,17 +342,29 @@ def plot_convergence(log, out):
     pad = np.array([e + [e[-1]] * (Nmax - len(e)) for e in use])
     mu  = pad.mean(0); sig = pad.std(0)
 
-    fig, ax = plt.subplots(figsize=(9, 6))
-    ax.semilogy(mu, "o-", c=C[1], lw=2, ms=6, label="Mean ||e_k||")
-    ax.fill_between(range(Nmax), np.maximum(mu - sig, 1e-10), mu + sig,
-                    alpha=0.2, color=C[1], label="+/-1 sig")
-    ax.set_xlabel("NR iteration k"); ax.set_ylabel("||e_k||")
-    ax.set_title(f"IK Convergence (max_iter={Nmax-1}, {lbl})")
-    ax.legend()
+    iters = np.arange(Nmax)
+    fig, axes = plt.subplots(2, 1, figsize=(13, 9), sharex=True)
+    ax = axes[0]
+    for row in pad:
+        ax.semilogy(iters, row, c=C[1], lw=0.5, alpha=0.06)
+    ax.semilogy(iters, mu, "o-", c=C[1], lw=2.5, ms=9, label="Mean ||e_k||", zorder=5)
+    ax.fill_between(iters, np.maximum(mu - sig, 1e-10), mu + sig,
+                    alpha=0.25, color=C[1], label="+/-1 sigma")
+    ax.set_ylabel("||e_k||", fontsize=12)
+    ax.set_title(f"Newton-Raphson IK Convergence (max_iter={Nmax-1}, {lbl})", fontsize=13)
+    ax.legend(fontsize=11); ax.grid(True, which="both", alpha=0.35)
     if mu[0] > 1e-10:
-        ax.text(0.62, 0.85, f"Reduction: {(1 - mu[-1]/mu[0])*100:.1f}%",
-                transform=ax.transAxes, fontsize=10,
-                bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.8))
+        ax.text(0.62, 0.82, f"Reduction: {(1 - mu[-1]/mu[0])*100:.1f}%",
+                transform=ax.transAxes, fontsize=11,
+                bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.85))
+    ax2 = axes[1]
+    ratios = mu[1:] / np.maximum(mu[:-1], 1e-12)
+    ax2.bar(iters[1:], ratios, color=C[1], alpha=0.7, width=0.5)
+    ax2.axhline(1.0, ls="--", c="gray", lw=1.0, label="ratio=1 (no improvement)")
+    ax2.set_ylabel("e_{k} / e_{k-1}", fontsize=12)
+    ax2.set_xlabel("NR iteration k", fontsize=12)
+    ax2.set_title("Per-Iteration Reduction Ratio  (< 1 = converging)", fontsize=11)
+    ax2.legend(fontsize=10); ax2.grid(True, alpha=0.35)
     fig.tight_layout()
     _save(fig, out / "05_ik_convergence.png")
 

@@ -111,9 +111,28 @@ def plot_error_over_time(log: SimulationLog, output_dir: Path) -> None:
     axes[0].axhline(1.0, ls="--", color="gray", lw=0.9, label="1 mm threshold")
     axes[0].legend(fontsize=9)
 
+    # Annotate the peak error with joint-limit / null-space explanation
+    peak_idx = int(np.argmax(pos_err))
+    t_peak   = t[peak_idx]
+    x_offset = 0.08 * (t[-1] - t[0])
+    axes[0].axvline(t_peak, ls=":", color="red", lw=1.2, alpha=0.6)
+    axes[0].annotate(
+        "q4 reaches joint limit\n"
+        "Null-space loses 1 DOF\n"
+        "-> arm degrades to 6-DOF\n"
+        "-> DLS damping activates",
+        xy=(t_peak, pos_err[peak_idx]),
+        xytext=(t_peak + x_offset, pos_err[peak_idx] * 0.65),
+        fontsize=8,
+        color="darkred",
+        arrowprops=dict(arrowstyle="->", color="darkred", lw=0.9),
+        bbox=dict(boxstyle="round,pad=0.3", fc="lightyellow", ec="red", alpha=0.85),
+    )
+
     # Orientation error
     axes[1].plot(t, ori_err, color=_C_ANALYTIC, lw=1.4)
     axes[1].fill_between(t, 0, ori_err, alpha=0.15, color=_C_ANALYTIC)
+    axes[1].axvline(t_peak, ls=":", color="red", lw=1.2, alpha=0.6)
     axes[1].set_ylabel("Orientation error ||e_o|| [rad]")
     axes[1].set_xlabel("Simulation time [s]")
 
@@ -219,32 +238,52 @@ def plot_ik_convergence(log: SimulationLog, output_dir: Path) -> None:
     mean_e = padded.mean(axis=0)
     std_e  = padded.std(axis=0)
 
-    fig, ax = plt.subplots(figsize=(9, 6))
+    fig, axes = plt.subplots(2, 1, figsize=(13, 9), sharex=True)
+    ax = axes[0]
 
-    ax.semilogy(iters, mean_e, "o-", color=_C_ACTUAL, lw=2.0, ms=6, label="Mean ||e_k||")
+    # Individual step traces (thin, transparent) to show spread
+    for row in padded:
+        ax.semilogy(iters, row, color=_C_ACTUAL, lw=0.5, alpha=0.06)
+
+    ax.semilogy(iters, mean_e, "o-", color=_C_ACTUAL, lw=2.5, ms=9,
+                label="Mean ||e_k||", zorder=5)
     ax.fill_between(
         iters,
         np.maximum(mean_e - std_e, 1e-10),
         mean_e + std_e,
-        alpha=0.2,
+        alpha=0.25,
         color=_C_ACTUAL,
-        label="± 1 σ",
+        label="+/- 1 sigma",
     )
 
-    ax.set_xlabel("Newton-Raphson iteration k")
-    ax.set_ylabel("Spatial error norm ||e_k||")
-    ax.set_title(f"IK Convergence per Iteration\n"
-                 f"(max_iter = {overall_max - 1}, {step_label})")
-    ax.legend()
+    ax.set_ylabel("Spatial error norm ||e_k||", fontsize=12)
+    ax.set_title(
+        f"Newton-Raphson IK Convergence per Iteration\n"
+        f"(max_iter = {overall_max - 1}, {step_label})",
+        fontsize=13,
+    )
+    ax.legend(fontsize=11)
+    ax.grid(True, which="both", alpha=0.35)
 
-    # Annotate percentage reduction
     if len(mean_e) >= 2 and mean_e[0] > 1e-10:
         reduction_pct = (1.0 - mean_e[-1] / mean_e[0]) * 100.0
-        ax.text(0.62, 0.85,
+        ax.text(0.62, 0.82,
                 f"Average reduction: {reduction_pct:.1f}%",
                 transform=ax.transAxes,
-                fontsize=10,
-                bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.8))
+                fontsize=11,
+                bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.85))
+
+    # Second panel: per-iteration reduction ratio
+    ax2 = axes[1]
+    if len(mean_e) >= 2:
+        ratios = mean_e[1:] / np.maximum(mean_e[:-1], 1e-12)
+        ax2.bar(iters[1:], ratios, color=_C_ACTUAL, alpha=0.7, width=0.5)
+        ax2.axhline(1.0, ls="--", color="gray", lw=1.0, label="ratio = 1 (no improvement)")
+        ax2.set_ylabel("Reduction ratio  e_{k} / e_{k-1}", fontsize=12)
+        ax2.set_xlabel("Newton-Raphson iteration k", fontsize=12)
+        ax2.set_title("Per-Iteration Reduction Ratio  (< 1 = converging)", fontsize=11)
+        ax2.legend(fontsize=10)
+        ax2.grid(True, alpha=0.35)
 
     fig.tight_layout()
     _save(fig, output_dir / "05_ik_convergence.png")
