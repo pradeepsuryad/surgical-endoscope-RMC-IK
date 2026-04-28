@@ -27,6 +27,12 @@
 ### SE(3) Tracking Error over Time
 ![Tracking Error](results/02_error_over_time.png)
 
+> The annotated spike marks where **q4 reaches its joint limit** (~t = 1.5 s).
+> The null-space projector `N = I − J⁺J` loses one redundant DOF, the arm
+> effectively becomes 6-DOF, and the DLS damping (λ_max = 0.05) activates
+> near the resulting kinematic singularity — causing the transient error rise.
+> Performance recovers once the arm moves away from that configuration.
+
 ### Analytical FK vs MuJoCo FK Verification
 ![FK Comparison](results/03_fk_comparison.png)
 
@@ -37,6 +43,13 @@
 
 ### Newton-Raphson IK Convergence per Iteration
 ![IK Convergence](results/05_ik_convergence.png)
+
+> **Top panel:** mean ± σ residual ‖e_k‖ across all converged steps, with
+> individual step traces shown behind (thin lines).
+> **Bottom panel:** per-iteration reduction ratio e_k / e_{k-1} — values < 1
+> confirm monotonic NR decay within the 5-iteration budget.
+> Null-space joint-limit avoidance (`N = I − J⁺J`, gain = 0.5) is applied
+> at every iteration as a secondary task on the 1-DOF redundancy.
 
 ### IK Computation Time per Step
 ![Computation Time](results/06_computation_time.png)
@@ -231,10 +244,10 @@ All plots are saved to `results/`:
 | `simulation.mp4` | Full MuJoCo simulation video (offscreen render) |
 | `00_summary_dashboard.png` | One-page summary for quick inspection |
 | `01_3d_trajectory.png` | Desired vs actual 3D path |
-| `02_error_over_time.png` | Position (mm) & orientation (rad) error |
+| `02_error_over_time.png` | Position (mm) & orientation (rad) error; joint-limit event annotated |
 | `03_fk_comparison.png` | Analytical FK vs MuJoCo FK verification |
 | `04_joint_angles.png` | All 7 joint angles (smooth motion proof) |
-| `05_ik_convergence.png` | NR residual decay per iteration |
+| `05_ik_convergence.png` | NR residual decay + per-iteration reduction ratio (two-panel) |
 | `06_computation_time.png` | Per-step IK solve time |
 
 ---
